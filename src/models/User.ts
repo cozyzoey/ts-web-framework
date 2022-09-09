@@ -2,6 +2,7 @@ import { Model } from "./Model";
 import { Attributes } from "./Attributes";
 import { ApiSync } from "./ApiSync";
 import { Eventing } from "./Eventing";
+import { Collection } from "./Collection";
 
 export interface UserProps {
   id?: number; //id가 있으면 백엔드에서 불러온 것이고, 없으면 새로 생성된 객체
@@ -17,5 +18,9 @@ export class User extends Model<UserProps> {
       new Eventing(),
       new ApiSync<UserProps>(rootUrl)
     );
+  }
+
+  static buildUserCollection(): Collection<User, UserProps> {
+    return new Collection<User, UserProps>(rootUrl, User.buildUser);
   }
 }
