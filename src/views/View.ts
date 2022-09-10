@@ -1,12 +1,26 @@
 import { Model, HasId } from "../models/Model";
 
 export abstract class View<T extends Model<K>, K extends HasId> {
+  regions: { [key: string]: Element } = {};
+
   constructor(public parent: Element, public model: T) {
     this.bindModel();
   }
 
-  abstract eventsMap(): { [key: string]: () => void };
   abstract template(): string;
+
+  /**
+   * eventsMap이 자식 클래스에 있을수도, 없을수도 있다.(데이터 렌더링만 해주는 경우)
+   * 그래서 abstract 대신 메서드로 정의해주면 자식 클래스에 필수가 아니게 된다.
+   * 자식 클래스에서 eventsMap이 정의되면 덮어쓰기 된다.
+   */
+  eventsMap(): { [key: string]: () => void } {
+    return {};
+  }
+
+  regionsMap(): { [key: string]: string } {
+    return {};
+  }
 
   bindModel(): void {
     this.model.on("change", () => {
@@ -26,6 +40,21 @@ export abstract class View<T extends Model<K>, K extends HasId> {
     }
   }
 
+  mapRegions(fragment: DocumentFragment): void {
+    const regionsMap = this.regionsMap();
+    for (let key in regionsMap) {
+      const selector = regionsMap[key];
+      const element = fragment.querySelector(selector);
+
+      if (element) {
+        this.regions[key] = element;
+      }
+    }
+  }
+
+  // 자식 클래스에서 덮어쓰기 함
+  onRender(): void {}
+
   render(): void {
     // 렌더 메서드를 여러번 호출할 경우
     // parent에 달려있던 HTML 요소를 제거해서 중복해서 생기지 않도록 함
@@ -37,6 +66,10 @@ export abstract class View<T extends Model<K>, K extends HasId> {
     templateElement.innerHTML = this.template();
 
     this.bindEvents(templateElement.content);
+
+    // Nesting
+    this.mapRegions(templateElement.content);
+    this.onRender();
 
     this.parent.append(templateElement.content);
   }
